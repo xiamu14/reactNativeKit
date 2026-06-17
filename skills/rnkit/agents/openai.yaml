@@ -1,0 +1,4 @@
+interface:
+  display_name: "RNKit"
+  short_description: "Query local React Native logs without MCP"
+  default_prompt: "Use $rnkit to inspect the local React Native runtime logs."

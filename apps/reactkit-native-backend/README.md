@@ -23,7 +23,8 @@ Environment variables:
 - `GET /health`
 - `GET /status`
 - `GET /connections`
-- `GET /logs?clientId=...&search=...&limit=...`
+- `GET /logs?clientId=...&search=...&type=...&prefix=...&subprefix=...&keyword=...&excludeKeyword=...&start=...&end=...&limit=...`
+- `GET /network?url=...&method=...&headerName=...&headerValue=...&clientId=...&start=...&end=...&limit=...`
 - `POST /clear`
 - `GET /mcp/status`
 - `POST /mcp/start`

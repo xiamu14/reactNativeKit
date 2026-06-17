@@ -158,6 +158,12 @@ extension View {
     func softCapsuleSurface(shadowRadius: CGFloat = 12, shadowY: CGFloat = 5) -> some View {
         modifier(SoftCapsuleSurface(shadowRadius: shadowRadius, shadowY: shadowY))
     }
+
+    func flatCapsuleSurface() -> some View {
+        background(DesignColor.surface)
+            .clipShape(Capsule())
+            .overlay(Capsule().stroke(DesignColor.surface.opacity(0.96), lineWidth: 1))
+    }
 }
 
 struct LucideIcon: View {
@@ -679,7 +685,6 @@ final class AppModel: ObservableObject {
     @Published var logs: [LogEntry] = []
     @Published var selectedClientId: String?
     @Published var searchText = ""
-    @Published var selectedSection: AppSection = .timeline
     @Published var isAutoRefreshPaused = false
     @Published var androidReverse = AndroidReverseState()
     @Published var lastError: String?
@@ -948,107 +953,20 @@ final class BackendSupervisor {
     }
 }
 
-enum AppSection: String, CaseIterable, Identifiable {
-    case timeline = "Timeline"
-    case state = "State"
-    case reactNative = "React Native"
-    case customCommands = "Commands"
-
-    var id: String { rawValue }
-
-    var symbol: LucideIcon.Name {
-        switch self {
-        case .timeline: .menu
-        case .state: .clipboardList
-        case .reactNative: .smartphone
-        case .customCommands: .wandSparkles
-        }
-    }
-
-    var isEnabled: Bool {
-        self == .timeline
-    }
-}
-
 struct ContentView: View {
-    @EnvironmentObject private var model: AppModel
-
     var body: some View {
-        HStack(spacing: 20) {
-            SidebarView()
+        VStack(spacing: 12) {
+            HeaderView()
 
-            VStack(spacing: 20) {
-                HeaderView()
+            HStack(alignment: .top, spacing: 12) {
+                ConnectionsPanel()
+                    .frame(width: 220)
 
-                HStack(alignment: .top, spacing: 20) {
-                    ConnectionsPanel()
-                        .frame(width: 220)
-
-                    TimelinePanel()
-                }
+                TimelinePanel()
             }
         }
-        .padding(32)
+        .padding(20)
         .foregroundStyle(DesignColor.primary)
-    }
-}
-
-struct SidebarView: View {
-    @EnvironmentObject private var model: AppModel
-
-    var body: some View {
-        VStack(spacing: 18) {
-            ForEach(AppSection.allCases) { section in
-                Button {
-                    if section.isEnabled {
-                        model.selectedSection = section
-                    }
-                } label: {
-                    VStack(spacing: 7) {
-                        LucideIcon(
-                            name: section.symbol,
-                            size: 24,
-                            color: iconColor(for: section),
-                            strokeWidth: 2
-                        )
-                        .frame(width: 44, height: 44)
-                        .background(model.selectedSection == section ? DesignColor.primary : DesignColor.surface.opacity(section.isEnabled ? 1 : 0.62))
-                            .clipShape(Circle())
-                            .overlay(
-                                Circle().stroke(DesignColor.border.opacity(section.isEnabled ? 0.8 : 0.45), lineWidth: model.selectedSection == section ? 0 : 1)
-                            )
-
-                        Text(section.rawValue)
-                            .font(.system(size: 11, weight: .medium))
-                            .foregroundStyle(labelColor(for: section))
-                            .lineLimit(1)
-                            .minimumScaleFactor(0.75)
-                    }
-                    .frame(width: 58)
-                }
-                .buttonStyle(.plain)
-                .disabled(!section.isEnabled)
-            }
-
-            Spacer()
-        }
-        .frame(width: 68)
-        .padding(.vertical, 14)
-        .softRoundedSurface(radius: 28, shadowRadius: 18, shadowY: 8)
-    }
-
-    private func iconColor(for section: AppSection) -> Color {
-        if model.selectedSection == section {
-            return DesignColor.surface
-        }
-        return section.isEnabled ? DesignColor.secondary : DesignColor.muted.opacity(0.58)
-    }
-
-    private func labelColor(for section: AppSection) -> Color {
-        if model.selectedSection == section {
-            return DesignColor.primary
-        }
-        return section.isEnabled ? DesignColor.secondary : DesignColor.muted.opacity(0.62)
     }
 }
 
@@ -1056,10 +974,17 @@ struct HeaderView: View {
     @EnvironmentObject private var model: AppModel
 
     var body: some View {
-        HStack(spacing: 18) {
-            Text("ReactNativeKit")
-                .font(.system(size: 22, weight: .semibold))
-                .lineLimit(1)
+        HStack(spacing: 12) {
+            HStack(spacing: 10) {
+                Image(nsImage: NSApp.applicationIconImage)
+                    .resizable()
+                    .scaledToFit()
+                    .frame(width: 36, height: 36)
+
+                Text("RNKit")
+                    .font(.system(size: 22, weight: .semibold))
+                    .lineLimit(1)
+            }
             .frame(minWidth: 190, alignment: .leading)
 
             Spacer()
@@ -1080,8 +1005,8 @@ struct HeaderView: View {
             )
             .frame(width: 170)
         }
-        .padding(.horizontal, 22)
-        .frame(height: 78)
+        .padding(.horizontal, 16)
+        .frame(height: 64)
         .softCapsuleSurface(shadowRadius: 18, shadowY: 8)
     }
 
@@ -1135,9 +1060,9 @@ struct StatusPill: View {
     var color: Color
 
     var body: some View {
-        HStack(spacing: 12) {
+        HStack(spacing: 8) {
             LucideIcon(name: symbol, size: 24, color: color, strokeWidth: 2)
-                .frame(width: 36, height: 36)
+                .frame(width: 32, height: 32)
                 .background(color.opacity(0.12))
                 .clipShape(Circle())
 
@@ -1154,10 +1079,12 @@ struct StatusPill: View {
             }
             .frame(maxWidth: .infinity, alignment: .leading)
         }
-        .padding(.leading, 10)
-        .padding(.trailing, 12)
-        .frame(height: 56)
-        .softCapsuleSurface(shadowRadius: 14, shadowY: 6)
+        .padding(.leading, 8)
+        .padding(.trailing, 10)
+        .frame(height: 48)
+        .background(DesignColor.surface)
+        .clipShape(Capsule())
+        .overlay(Capsule().stroke(DesignColor.surface.opacity(0.96), lineWidth: 1))
     }
 }
 
@@ -1166,7 +1093,7 @@ struct SearchField: View {
     @FocusState private var isFocused: Bool
 
     var body: some View {
-        HStack(spacing: 12) {
+        HStack(spacing: 8) {
             LucideIcon(name: .search, size: 24, color: DesignColor.primary, strokeWidth: 2)
 
             TextField("Search logs ...", text: $text)
@@ -1175,10 +1102,9 @@ struct SearchField: View {
                 .foregroundStyle(DesignColor.primary)
                 .focused($isFocused)
         }
-        .padding(.horizontal, 18)
-        .frame(height: 48)
-        .softCapsuleSurface(shadowRadius: 8, shadowY: 3)
-        .contentShape(Capsule())
+        .padding(.horizontal, 10)
+        .frame(height: 40)
+        .contentShape(Rectangle())
         .onTapGesture {
             isFocused = true
         }
@@ -1211,16 +1137,16 @@ struct TimelineActionButton: View {
 
     var body: some View {
         Button(action: action) {
-            HStack(spacing: 8) {
+            HStack(spacing: 6) {
                 LucideIcon(name: symbol, size: 24, color: foreground, strokeWidth: 2)
                 Text(title)
                     .font(.system(size: 13, weight: .semibold))
                     .lineLimit(1)
             }
             .foregroundStyle(foreground)
-            .padding(.horizontal, 14)
-            .frame(height: 48)
-            .softCapsuleSurface(shadowRadius: 8, shadowY: 3)
+            .padding(.horizontal, 10)
+            .frame(height: 40)
+            .flatCapsuleSurface()
         }
         .buttonStyle(.plain)
     }
@@ -1230,7 +1156,7 @@ struct ConnectionsPanel: View {
     @EnvironmentObject private var model: AppModel
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 18) {
+        VStack(alignment: .leading, spacing: 12) {
             HStack {
                 VStack(alignment: .leading, spacing: 4) {
                     Text("Connections")
@@ -1262,9 +1188,9 @@ struct ConnectionsPanel: View {
 
             Spacer()
         }
-        .padding(24)
+        .padding(18)
         .frame(maxHeight: .infinity)
-        .softRoundedSurface(radius: 26, shadowRadius: 18, shadowY: 8)
+        .softRoundedSurface(radius: 20, shadowRadius: 18, shadowY: 8)
     }
 }
 
@@ -1272,8 +1198,8 @@ struct AndroidReverseCard: View {
     var state: AndroidReverseState
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            HStack(spacing: 9) {
+        VStack(alignment: .leading, spacing: 6) {
+            HStack(spacing: 6) {
                 Circle()
                     .fill(indicatorColor)
                     .frame(width: 8, height: 8)
@@ -1294,9 +1220,9 @@ struct AndroidReverseCard: View {
                 .lineLimit(3)
                 .fixedSize(horizontal: false, vertical: true)
         }
-        .padding(14)
+        .padding(10)
         .background(backgroundColor)
-        .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
+        .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
     }
 
     private var indicatorColor: Color {
@@ -1316,10 +1242,10 @@ struct AndroidReverseCard: View {
 
 struct EmptyConnectionCard: View {
     var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            HStack(spacing: 12) {
+        VStack(alignment: .leading, spacing: 8) {
+            HStack(spacing: 8) {
                 LucideIcon(name: .phoneOff, size: 24, color: DesignColor.accent, strokeWidth: 2)
-                    .frame(width: 42, height: 42)
+                    .frame(width: 36, height: 36)
                     .background(DesignColor.accentSoft)
                     .clipShape(Circle())
 
@@ -1334,9 +1260,9 @@ struct EmptyConnectionCard: View {
                 .foregroundStyle(DesignColor.secondary)
                 .lineSpacing(3)
         }
-        .padding(18)
+        .padding(12)
         .background(DesignColor.surfaceSoft.opacity(0.34))
-        .clipShape(RoundedRectangle(cornerRadius: 22, style: .continuous))
+        .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
     }
 }
 
@@ -1347,7 +1273,7 @@ struct ConnectionRow: View {
 
     var body: some View {
         Button(action: action) {
-            HStack(spacing: 12) {
+            HStack(spacing: 8) {
                 LucideIcon(name: .smartphone, size: 24, color: DesignColor.secondary, strokeWidth: 2)
                     .frame(width: 32, height: 40)
 
@@ -1370,10 +1296,10 @@ struct ConnectionRow: View {
                 }
                 Spacer()
             }
-            .padding(.horizontal, 14)
-            .padding(.vertical, 10)
+            .padding(.horizontal, 10)
+            .padding(.vertical, 8)
             .background(isSelected ? DesignColor.accentSoft.opacity(0.82) : DesignColor.surfaceSoft.opacity(0.62))
-            .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
+            .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
         }
         .buttonStyle(.plain)
     }
@@ -1400,8 +1326,8 @@ struct TimelinePanel: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            VStack(alignment: .leading, spacing: 16) {
-                HStack(alignment: .firstTextBaseline, spacing: 12) {
+            VStack(alignment: .leading, spacing: 10) {
+                HStack(alignment: .firstTextBaseline, spacing: 8) {
                     Text("Timeline")
                         .font(.system(size: 18, weight: .semibold))
                         .lineLimit(1)
@@ -1412,7 +1338,7 @@ struct TimelinePanel: View {
                     Spacer()
                 }
 
-                HStack(spacing: 12) {
+                HStack(spacing: 8) {
                     SearchField(text: $model.searchText)
                         .frame(minWidth: 260, maxWidth: 420)
                         .onSubmit {
@@ -1436,7 +1362,7 @@ struct TimelinePanel: View {
                     Spacer(minLength: 0)
                 }
             }
-            .padding(24)
+            .padding(18)
 
             Divider()
                 .overlay(DesignColor.border.opacity(0.32))
@@ -1456,7 +1382,7 @@ struct TimelinePanel: View {
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .softRoundedSurface(radius: 26, shadowRadius: 18, shadowY: 8)
+        .softRoundedSurface(radius: 20, shadowRadius: 18, shadowY: 8)
     }
 
     private var timelineSubtitle: String {
@@ -1472,14 +1398,14 @@ struct FilterPill: View {
     var symbol: LucideIcon.Name
 
     var body: some View {
-        HStack(spacing: 8) {
+        HStack(spacing: 6) {
             LucideIcon(name: symbol, size: 24, color: DesignColor.primary, strokeWidth: 2)
             Text(title)
                 .font(.system(size: 13, weight: .medium))
         }
-        .padding(.horizontal, 14)
-        .frame(height: 48)
-        .softCapsuleSurface(shadowRadius: 8, shadowY: 3)
+        .padding(.horizontal, 10)
+        .frame(height: 40)
+        .flatCapsuleSurface()
     }
 }
 
@@ -1487,17 +1413,17 @@ struct TimelineEmptyState: View {
     @EnvironmentObject private var model: AppModel
 
     var body: some View {
-        VStack(spacing: 22) {
+        VStack(spacing: 16) {
             Spacer()
 
-            VStack(spacing: 18) {
+            VStack(spacing: 12) {
                 LucideIcon(
                     name: model.connections.isEmpty ? .activity : .list,
                     size: 48,
                     color: DesignColor.primary.opacity(0.58),
                     strokeWidth: 2
                 )
-                .frame(width: 78, height: 78)
+                .frame(width: 64, height: 64)
                 .background(DesignColor.surfaceSoft.opacity(0.46))
                 .clipShape(Circle())
 
@@ -1514,7 +1440,7 @@ struct TimelineEmptyState: View {
             Spacer()
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .padding(40)
+        .padding(24)
     }
 }
 

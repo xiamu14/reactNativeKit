@@ -1,5 +1,6 @@
 const http = require("http")
 const path = require("path")
+const { queryLogs, queryNetwork } = require("./query")
 
 const repoRoot = path.resolve(__dirname, "../../..")
 const compatibilityRoot = path.join(repoRoot, "packages/reactotron")
@@ -254,31 +255,6 @@ function statusPayload() {
   }
 }
 
-function filterLogs(url) {
-  const clientId = url.searchParams.get("clientId")
-  const search = (url.searchParams.get("search") || "").trim().toLowerCase()
-  const limit = Math.min(readPositiveIntFromString(url.searchParams.get("limit"), 200), 500)
-
-  return state.commands
-    .filter((command) => !clientId || command.clientId === clientId)
-    .filter((command) => {
-      if (!search) return true
-      return [
-        command.type,
-        command.summary,
-        command.details,
-        safeStringify(command.payload),
-      ].some((value) => String(value || "").toLowerCase().includes(search))
-    })
-    .slice(-limit)
-    .reverse()
-}
-
-function readPositiveIntFromString(raw, fallback) {
-  const value = Number.parseInt(raw || "", 10)
-  return Number.isInteger(value) && value > 0 ? value : fallback
-}
-
 async function requestHandler(req, res) {
   if (req.method === "OPTIONS") {
     res.writeHead(204, {
@@ -308,7 +284,12 @@ async function requestHandler(req, res) {
   }
 
   if (req.method === "GET" && url.pathname === "/logs") {
-    writeJson(res, 200, { logs: filterLogs(url) })
+    writeJson(res, 200, { logs: queryLogs(state.commands, url.searchParams) })
+    return
+  }
+
+  if (req.method === "GET" && url.pathname === "/network") {
+    writeJson(res, 200, { entries: queryNetwork(state.commands, url.searchParams) })
     return
   }
 
@@ -486,7 +467,7 @@ async function startMcpWithFallback(firstPort) {
 function startApiServer() {
   const apiServer = http.createServer((req, res) => {
     requestHandler(req, res).catch((error) => {
-      writeJson(res, 500, { error: String(error.message || error) })
+      writeJson(res, error.statusCode || 500, { error: String(error.message || error) })
     })
   })
 
