@@ -102,6 +102,8 @@ If Codex does not show the ReactNativeKit MCP tools after changing the MCP confi
 
 ## Codex skill usage
 
+Install or update the bundled skill with `bun run skill`. The picker can target Claude Code, Codex, or opencode; pressing enter without choosing installs to Global.
+
 Use the `rnkit` Codex skill when you want Codex to diagnose runtime evidence from the local ReactNativeKit desktop app. The skill queries the local API at `http://127.0.0.1:3901`, so ReactNativeKit must be running first.
 
 Example prompts:
